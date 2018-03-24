@@ -1,0 +1,15 @@
+{
+  "name": "youtubething",
+  "version": "1.0.0",
+  "description": "",
+  "main": "client.js",
+  "dependencies": {
+    "browser-sync": "^2.23.6"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "browser-sync start --server --open local"
+  },
+  "author": "",
+  "license": "ISC"
+}

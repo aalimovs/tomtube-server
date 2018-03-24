@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Youtube Thing - Search</title>
+    
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <style>
+        img {
+            cursor: pointer;
+            width:100%;
+        }
+        input {
+            padding:0.5em;
+            font-size:18px;
+            margin-top:1em;
+            width:100%;
+        }
+        .search-results {
+            margin-top:1em;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+</head>
+<body>
+    <div id="app" class="container-fluid">
+        <input v-model="searchTerm" @keydown="searchKeyDown" @keyup="searchKeyUp" placeholder="Search..." id="search" name="search" type="text">
+        <h3>Search Results</h3>
+        <div class="search-results">
+            <div v-for="video in searchResults" class="row video-record">
+                <div class="col video-col">
+                    <img @click="addVideo(video)" :src="'https://img.youtube.com/vi/' + video.id + '/0.jpg'" :alt="video.title">
+                </div>
+    
+                <div class="col video-col">
+                    <small>{{video.title}}</small>
+                    <small>{{video.author}}</small>
+                </div>
+            </div>
+        </div>
+
+        <h3>Playlist</h3>
+        <div class="playlist">
+            <div v-for="video in playlist" class="row video-record">
+                <div class="col video-col">
+                    <img :src="'https://img.youtube.com/vi/' + video.id + '/0.jpg'" :alt="video.title">
+                </div>
+    
+                <div class="col video-col">
+                    <small>{{video.title}}</small>
+                    <small>{{video.author}}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+<script>
+
+var app = new Vue({
+    el: '#app',
+    data: function() {
+        return {
+            searchTerm: '',
+            typingTimer: null,
+            searchResults: [],
+            playlist: [],
+        };
+    },
+    methods: {
+        searchKeyUp: function(e) {
+            var self = this;
+            clearTimeout(this.typingTimer);
+            this.typingTimer = setTimeout(function() {
+                axios.post('http://localhost:4000/search', {
+                    search: self.searchTerm,
+                })
+                .then(function (response) {
+                    self.searchResults = response.data;
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
+            }, 1000);
+        },
+        searchKeyDown: function() {
+            clearTimeout(this.typingTimer);
+        },
+        addVideo(video) {
+            var self = this;
+            axios.post('http://localhost:4000/videos', {
+                id: video.id,
+                title: video.title,
+                author: video.author,
+            })
+            .then(function (response) {
+                self.playlist = response.data;
+            })
+            .catch(function (error) {
+                console.log(error);
+            });
+        }
+    },
+});
+
+</script>
+
+<script>
+    var socket = io('http://localhost:4001');
+    socket.on("connect", function() {
+        console.log('connected client side');
+    });
+</script>
+
+</body>
+</html>
