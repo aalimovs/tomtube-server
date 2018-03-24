@@ -1,15 +1,16 @@
 {
-  "name": "youtubething-server",
+  "name": "tometube-server",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "nodemon index"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "express": "^4.16.3",
+    "nodemon": "^1.17.2",
     "socket.io": "^2.0.4",
     "youtube-api-v3-search": "^1.0.2",
     "youtube-search": "^1.1.0"
