@@ -5,8 +5,10 @@ module.exports = (args) => {
     
     server.listen(4001);
 
+    const userConnections = [];
+
     io.on('connection', function (socket) {
-        console.log('connected');
+        userConnections.push(socket);
     });
 
     return {

@@ -1,4 +1,4 @@
-const Socket = require('./socket')();
+require('dotenv').config()
 
 const express = require('express');
 const YoutubeSearch = require('youtube-api-v3-search');
@@ -10,20 +10,22 @@ app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
 const serverPort = 4000;
-const apiKey = 'naughties';
 
 app.listen(serverPort, () => console.log(`Example app listening on serverPort ${serverPort}`));
 
 app.use(function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH');
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
 });
  
-const videos = [];
+const Socket = require('./socket')();
+
+const playlist = [];
 
 app.post('/search', function(req, res) {
-    YoutubeSearch(apiKey, {
+    YoutubeSearch(process.env.YOUTUBE_API_KEY, {
         maxResults: 10,
         q: req.body.search,
         type:'video'
@@ -42,14 +44,22 @@ app.post('/search', function(req, res) {
         });
 });
 
-app.post('/videos', function(req, res) {
-    videos.unshift({
+app.post('/playlist', function(req, res) {
+    playlist.push({
         ... req.body
     });
-
-    Socket.emit('new-video', { ...req.body });
+    Socket.emit('playlist-updated', playlist);
+    Socket.emit('new-video', playlist);
+    return res.send(playlist);
 });
 
-app.get('/videos', function(req, res) {
-    res.send(videos);
+app.get('/playlist', function(req, res) {
+    return res.send(playlist);
+});
+
+app.delete('/playlist', function(req, res) {
+    console.log('popping video from playlist');
+    playlist.shift();
+    Socket.emit('playlist-updated', playlist);
+    return res.send(playlist);
 });
