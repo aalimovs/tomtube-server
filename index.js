@@ -48,18 +48,39 @@ app.post('/playlist', function(req, res) {
     playlist.push({
         ... req.body
     });
+    console.log('video added to playlist');
     Socket.emit('playlist-updated', playlist);
     Socket.emit('new-video', playlist);
     return res.send(playlist);
 });
 
+/**
+ * return the whole playlist
+ */
 app.get('/playlist', function(req, res) {
     return res.send(playlist);
 });
 
+/**
+ * delete the "next" video
+ */
 app.delete('/playlist', function(req, res) {
-    console.log('popping video from playlist');
     playlist.shift();
     Socket.emit('playlist-updated', playlist);
     return res.send(playlist);
+});
+
+/**
+ * delete a specific video from the playlist
+ */
+app.delete('/playlist/:id', function(req, res) {
+    // delete a specific video id from the playlist
+    // playlist.shift();
+    Socket.emit('playlist-updated', playlist);
+    return res.send(playlist);
+});
+
+app.all('/playlist/actions/skip-video', function(req, res) {
+    Socket.emit('skip-video')
+    return res.send();
 });
