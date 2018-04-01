@@ -62,6 +62,9 @@ app.post("/playlist", function(req, res) {
     return res.send(playlist);
 });
 
+/**
+ * add a song to the start of the playlist
+ */
 app.post("/playlist/next", function(req, res) {
     playlist.unshift({
         ...req.body
@@ -104,4 +107,8 @@ app.delete("/playlist/:id", function(req, res) {
 app.all("/playlist/actions/skip-video", function(req, res) {
     Socket.emit("skip-video");
     return res.send();
+});
+
+app.get('health', function(req, res) {
+    res.send('tyketube-health-all-ok');
 });
