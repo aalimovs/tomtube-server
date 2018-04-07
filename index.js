@@ -53,6 +53,13 @@ app.post("/search", function(req, res) {
 });
 
 /**
+ * replacing the entire playlist with a new playlist
+ */
+app.put('/playlist', function(req, res) {
+
+});
+
+/**
  * add a video to the playlist
  */
 app.post("/playlist", function(req, res) {
