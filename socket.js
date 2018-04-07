@@ -1,3 +1,5 @@
+const Log = require('winston');
+
 module.exports = (args) => {
     var app = require('express')();
     var server = require('http').Server(app);

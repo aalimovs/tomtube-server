@@ -11,8 +11,10 @@
   "dependencies": {
     "dotenv": "^5.0.1",
     "express": "^4.16.3",
+    "lodash": "^4.17.5",
     "nodemon": "^1.17.2",
     "socket.io": "^2.0.4",
+    "winston": "^2.4.1",
     "youtube-api-v3-search": "^1.0.2",
     "youtube-search": "^1.1.0"
   }

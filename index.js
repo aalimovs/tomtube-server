@@ -1,4 +1,6 @@
 require("dotenv").config();
+const Log = require('winston');
+const _ = require('lodash');
 
 const express = require("express");
 const YoutubeSearch = require("youtube-api-v3-search");
@@ -30,6 +32,7 @@ const Socket = require("./socket")();
 const playlist = [];
 
 app.post("/search", function(req, res) {
+    Log.info('SEARCH', `search term: '${req.body.search}'`);
     YoutubeSearch(process.env.YOUTUBE_API_KEY, {
         maxResults: 10,
         q: req.body.search,
@@ -50,26 +53,26 @@ app.post("/search", function(req, res) {
 });
 
 /**
- * add a song to the playlist
+ * add a video to the playlist
  */
 app.post("/playlist", function(req, res) {
+    Log.info('Adding a video to playlist', req.body);
     playlist.push({
         ...req.body
     });
-    console.log("video added to playlist");
     Socket.emit("playlist-updated", playlist);
     Socket.emit("new-video", playlist);
     return res.send(playlist);
 });
 
 /**
- * add a song to the start of the playlist
+ * add a video to the start of the playlist
  */
 app.post("/playlist/next", function(req, res) {
+    Log.info('Pushing a video to front of playlist', req.body);
     playlist.unshift({
         ...req.body
     });
-    console.log("video add next to playlist");
     Socket.emit("playlist-updated", playlist);
     Socket.emit("new-video", playlist);
     return res.send(playlist);
@@ -86,24 +89,23 @@ app.get("/playlist", function(req, res) {
  * delete the "next" video
  */
 app.delete("/playlist", function(req, res) {
-    playlist.shift();
+    const deletedVideo = playlist.shift();
+    Log.info('Deleting the "next" video from the playlist', deletedVideo);
     Socket.emit("playlist-updated", playlist);
     return res.send(playlist);
 });
 
 /**
- * delete a specific video from the playlist
+ * delete a specific video from the playlist via id
  */
 app.delete("/playlist/:id", function(req, res) {
-    // delete a specific video id from the playlist
-    // playlist.shift();
+    const removedVideo = _.remove(playlist, video => {
+        return video.id === req.params.id;
+    });
     Socket.emit("playlist-updated", playlist);
     return res.send(playlist);
 });
 
-/**
- * skip a video
- */
 app.all("/playlist/actions/skip-video", function(req, res) {
     Socket.emit("skip-video");
     return res.send();
