@@ -27,10 +27,14 @@ app.use(function(req, res, next) {
     next();
 });
 
+/**
+ * spin up our Socket server
+ */
 const Socket = require("./socket")();
 
 const playlist = [];
 
+// dedicated youtube search endpoint
 app.post("/search", function(req, res) {
     Log.info('SEARCH', `search term: '${req.body.search}'`);
     YoutubeSearch(process.env.YOUTUBE_API_KEY, {
@@ -52,15 +56,11 @@ app.post("/search", function(req, res) {
         });
 });
 
-/**
- * replacing the entire playlist with a new playlist
- */
-app.put('/playlist', function(req, res) {
-
-});
 
 /**
- * add a video to the playlist
+ * 
+ * @param {Request} req
+ * @param {Response} res 
  */
 app.post("/playlist", function(req, res) {
     Log.info('Adding a video to playlist', req.body);
@@ -68,7 +68,11 @@ app.post("/playlist", function(req, res) {
         ...req.body
     });
     Socket.emit("playlist-updated", playlist);
-    Socket.emit("new-video", playlist);
+    Socket.emit("new-video", {
+        playlist, 
+        video: { ...req.body },
+        type: 'add',
+    });
     return res.send(playlist);
 });
 
@@ -81,7 +85,11 @@ app.post("/playlist/next", function(req, res) {
         ...req.body
     });
     Socket.emit("playlist-updated", playlist);
-    Socket.emit("new-video", playlist);
+    Socket.emit("new-video", {
+        playlist, 
+        video: { ...req.body },
+        type: 'next',
+    });
     return res.send(playlist);
 });
 
