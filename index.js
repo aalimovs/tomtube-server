@@ -56,7 +56,9 @@ app.post("/search", function(req, res) {
         });
 });
 
-
+/**
+ * adds a video to the playlist
+ */
 app.post('/playlist/:roomCode', (req, res) => {
     console.log('adding video to playlist');
 
@@ -70,23 +72,28 @@ app.post('/playlist/:roomCode', (req, res) => {
         video,
         type: 'add',
     });
+    return res.send(room.playlist);
 });
 
 /**
  * add a video to the start of the playlist
  */
-app.post("/playlist/next", function(req, res) {
+app.post("/playlist/next/:roomCode", function(req, res) {
     Log.info('Pushing a video to front of playlist', req.body);
-    playlist.unshift({
-        ...req.body
+    const video = { ...req.body };
+    
+    const room = Socket.getRoom(req.params.roomCode);
+
+    console.log('room', room);
+
+    room.playlist.unshift(video);
+    room.emit("playlist-updated", room.playlist);
+    room.emit("new-video", {
+        playlist: room.playlist,
+        video,
+        type: 'add',
     });
-    Socket.emit("playlist-updated", playlist);
-    Socket.emit("new-video", {
-        playlist, 
-        video: { ...req.body },
-        type: 'next',
-    });
-    return res.send(playlist);
+    return res.send(room.playlist);
 });
 
 /**
