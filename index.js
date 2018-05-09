@@ -27,10 +27,14 @@ app.use(function(req, res, next) {
     next();
 });
 
+/**
+ * spin up our Socket server
+ */
 const Socket = require("./socket")();
 
-const playlist = [];
+// const playlist = [];
 
+// dedicated youtube search endpoint
 app.post("/search", function(req, res) {
     Log.info('SEARCH', `search term: '${req.body.search}'`);
     YoutubeSearch(process.env.YOUTUBE_API_KEY, {
@@ -53,64 +57,79 @@ app.post("/search", function(req, res) {
 });
 
 /**
- * replacing the entire playlist with a new playlist
+ * adds a video to the playlist
  */
-app.put('/playlist', function(req, res) {
+app.post('/playlist/:roomCode', (req, res) => {
+    console.log('adding video to playlist');
 
-});
+    const video = { ...req.body };
 
-/**
- * add a video to the playlist
- */
-app.post("/playlist", function(req, res) {
-    Log.info('Adding a video to playlist', req.body);
-    playlist.push({
-        ...req.body
+    const room = Socket.getRoom(req.params.roomCode);
+    room.playlist.push(video);
+    room.emit("playlist-updated", room.playlist);
+    room.emit("new-video", {
+        playlist: room.playlist,
+        video,
+        type: 'add',
     });
-    Socket.emit("playlist-updated", playlist);
-    Socket.emit("new-video", playlist);
-    return res.send(playlist);
+    return res.send(room.playlist);
 });
 
 /**
  * add a video to the start of the playlist
  */
-app.post("/playlist/next", function(req, res) {
+app.post("/playlist/next/:roomCode", function(req, res) {
     Log.info('Pushing a video to front of playlist', req.body);
-    playlist.unshift({
-        ...req.body
+    const video = { ...req.body };
+    
+    const room = Socket.getRoom(req.params.roomCode);
+
+    console.log('room', room);
+
+    room.playlist.unshift(video);
+    room.emit("playlist-updated", room.playlist);
+    room.emit("new-video", {
+        playlist: room.playlist,
+        video,
+        type: 'add',
     });
-    Socket.emit("playlist-updated", playlist);
-    Socket.emit("new-video", playlist);
-    return res.send(playlist);
+    return res.send(room.playlist);
 });
 
 /**
  * return the whole playlist
  */
-app.get("/playlist", function(req, res) {
-    return res.send(playlist);
+app.get("/playlist/:roomCode", function(req, res) {
+    const room = Socket.getRoom(req.params.roomCode);
+    return res.send(room.playlist);
+});
+
+app.get("/rooms", function(req, res) {
+    return Socket.getRooms();
+});
+
+app.get("/rooms/:id", function(req, res) {
+    return Socket.getRoom(req.params.id);
 });
 
 /**
  * delete the "next" video
  */
-app.delete("/playlist", function(req, res) {
-    const deletedVideo = playlist.shift();
-    Log.info('Deleting the "next" video from the playlist', deletedVideo);
-    Socket.emit("playlist-updated", playlist);
-    return res.send(playlist);
+app.delete("/playlist/:roomCode", function(req, res) {
+    const room = Socket.getRoom(req.params.roomCode);
+    room.playlist.shift();
+    room.emit("playlist-updated", room.playlist);
+    return res.send(room.playlist);
 });
 
 /**
  * delete a specific video from the playlist via id
  */
-app.delete("/playlist/:id", function(req, res) {
-    const removedVideo = _.remove(playlist, video => {
-        return video.id === req.params.id;
-    });
-    Socket.emit("playlist-updated", playlist);
-    return res.send(playlist);
+app.delete("/playlist/:roomCode/:id", function(req, res) {
+    const room = Socket.getRoom(req.params.roomCode);
+    const removedVideo = _.remove(room.playlist, v => v.id === req.params.id);
+    room.emit("playlist-updated", room.playlist);
+    return res.send(room.playlist);
 });
 
 app.all("/playlist/actions/skip-video", function(req, res) {
