@@ -132,9 +132,12 @@ app.delete("/playlist/:roomCode/:id", function(req, res) {
     return res.send(room.playlist);
 });
 
-app.all("/playlist/actions/skip-video", function(req, res) {
-    Socket.emit("skip-video");
-    return res.send();
+app.all("/playlist/actions/skip-video/:roomCode", function(req, res) {
+    console.log(`skipping video in room ${req.params.roomCode}`);
+
+    const room = Socket.getRoom(req.params.roomCode);
+    room.emit("skip-video");
+    return res.send(room.playlist);
 });
 
 app.get('health', function(req, res) {
