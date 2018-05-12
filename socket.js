@@ -10,51 +10,32 @@ module.exports = (args) => {
 
     server.listen(4001);
 
+    console.log('SOCKET - Listening on port 4001');
+
     io.on('connection', function (socket) {
-        console.log('SOCKET - new connection');
         socket._data = {
             type: socket.handshake.query.type,
-            room_code: socket.handshake.query.room_code,
-            uuid: Uuid(), 
+            uuid: Uuid(),
         };
 
-        console.log('socket._data', socket._data);
         if (socket.handshake.headers.referer.includes('player')) {
-            console.log('SOCKET - new connection is a player');
-            if (socket._data.room_code && rooms.length >= 1) { // only add them to a room if they have a room code AND there are rooms
-                console.log('SOCKET - player WITH room code - adding to room');
-                const room = findRoomForCode(socket._data.room_code, rooms);
-                room.sockets.push(socket);
-            } else {
-                console.log('SOCKET - player, no room code - creating room');
-                const room = createNewRoom();
-                socket._data.room_code = room.code;
-                console.log(`SOCKET - generated room with code ${room.code}`);
-                room.sockets.push(socket);
-                rooms.push(room);
-                emitWelcome(socket, room);
-            }
-
+            const room = createNewRoom();
+            socket._data.room_code = room.code;
+            room.sockets.push(socket);
+            rooms.push(room);
+            emitWelcome(socket, room);
         } else if (socket.handshake.headers.referer.includes('user')) {
-            console.log('SOCKET - new user - wants to join room:', socket._data.room_code);
-
             const room = findRoomForCode(socket._data.room_code, rooms);
             if (room) {
-                console.log('SOCKET - user found room for code:', socket._data.room_code, '- joining room');
                 room.sockets.push(socket);
-            } else {
-                console.log('SOCKET - user - no room found for code:', socket._data.room_code);
             }
         }
 
         socket.on('disconnect', () => {
             const room = findRoomForCode(socket._data.room_code, rooms);
             if (socket._data.type === 'player') {
-                console.log('SOCKET - disconnected user was a player, self destructing room');
                 room.selfDestruct(rooms);
-                console.log('SOCKET - room self descructed, rooms left:', rooms);
             } else if (socket._data.type === 'user') {
-                // user disconnected - remove it from its room
                 if (room) {
                     room.removeSocket(socket._data.uuid);
                 }

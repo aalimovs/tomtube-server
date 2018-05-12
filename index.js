@@ -2,9 +2,12 @@ require("dotenv").config();
 const Log = require('winston');
 const _ = require('lodash');
 
+// @see https://developers.google.com/youtube/v3/docs/search/list
+
 const express = require("express");
-const YoutubeSearch = require("youtube-api-v3-search");
 var bodyParser = require("body-parser");
+const Axios = require('axios');
+const QueryString = require('querystring');
 
 const app = express();
 
@@ -32,28 +35,50 @@ app.use(function(req, res, next) {
  */
 const Socket = require("./socket")();
 
-// const playlist = [];
-
 // dedicated youtube search endpoint
-app.post("/search", function(req, res) {
+app.post("/search/:pageToken?", async function(req, res) {
     Log.info('SEARCH', `search term: '${req.body.search}'`);
-    YoutubeSearch(process.env.YOUTUBE_API_KEY, {
-        maxResults: 10,
+    const pageToken = req.params.pageToken;
+
+    const queryObject = {
+        part: 'snippet',
         q: req.body.search,
-        type: "video"
-    })
-        .then(results => {
-            return results.items.map(result => {
-                return {
-                    id: result.id.videoId,
-                    title: result.snippet.title,
-                    author: result.snippet.channelTitle
-                };
-            });
-        })
-        .then(videos => {
-            res.send(videos);
+        maxResults: 3,
+        key: process.env.YOUTUBE_API_KEY,
+        type: 'video',
+    };
+
+    if (pageToken) {
+        queryObject.pageToken = pageToken;
+    }
+
+    const query = QueryString.stringify(queryObject);
+
+    try {
+        const response = await Axios.get(`https://www.googleapis.com/youtube/v3/search?${query}`);
+        const { items, nextPageToken } = response.data;
+
+        const results = items.map(item => {
+            return {
+                title: item.snippet.title,
+                id: item.id.videoId,
+                author: item.snippet.channelTitle,
+            };
         });
+
+        return res.send({
+            data: results,
+            meta: {
+                nextPageToken,
+            },
+        });
+
+    } catch (err) {
+        console.log('err', err);
+        return res.send({
+            
+        });
+    }
 });
 
 /**
@@ -61,18 +86,23 @@ app.post("/search", function(req, res) {
  */
 app.post('/playlist/:roomCode', (req, res) => {
     console.log('adding video to playlist');
-
     const video = { ...req.body };
-
     const room = Socket.getRoom(req.params.roomCode);
-    room.playlist.push(video);
-    room.emit("playlist-updated", room.playlist);
-    room.emit("new-video", {
-        playlist: room.playlist,
-        video,
-        type: 'add',
-    });
-    return res.send(room.playlist);
+
+    console.log('room', room);
+    try {
+        room.playlist.push(video);
+        room.emit("playlist-updated", room.playlist);
+        room.emit("new-video", {
+            playlist: room.playlist,
+            video,
+            type: 'add',
+        });
+        return res.send(room.playlist);
+    } catch (err) {
+        res.status(400);
+        return res.send('Failed to queue song');
+    }
 });
 
 /**
@@ -84,16 +114,19 @@ app.post("/playlist/next/:roomCode", function(req, res) {
     
     const room = Socket.getRoom(req.params.roomCode);
 
-    console.log('room', room);
-
-    room.playlist.unshift(video);
-    room.emit("playlist-updated", room.playlist);
-    room.emit("new-video", {
-        playlist: room.playlist,
-        video,
-        type: 'add',
-    });
-    return res.send(room.playlist);
+    try {
+        room.playlist.unshift(video);
+        room.emit("playlist-updated", room.playlist);
+        room.emit("new-video", {
+            playlist: room.playlist,
+            video,
+            type: 'add',
+        });
+        return res.send(room.playlist);
+    } catch (err) {
+        res.status(400);
+        return res.send('Failed to queue song next');
+    }
 });
 
 /**
@@ -101,7 +134,11 @@ app.post("/playlist/next/:roomCode", function(req, res) {
  */
 app.get("/playlist/:roomCode", function(req, res) {
     const room = Socket.getRoom(req.params.roomCode);
-    return res.send(room.playlist);
+    if (room) {
+        return res.send(room.playlist);
+    }
+    console.log('tried to return a playlist for an empty room');
+    return res.send(null);
 });
 
 app.get("/rooms", function(req, res) {
@@ -117,9 +154,13 @@ app.get("/rooms/:id", function(req, res) {
  */
 app.delete("/playlist/:roomCode", function(req, res) {
     const room = Socket.getRoom(req.params.roomCode);
-    room.playlist.shift();
-    room.emit("playlist-updated", room.playlist);
-    return res.send(room.playlist);
+    try {
+        room.playlist.shift();
+        room.emit("playlist-updated", room.playlist);
+        return res.send(room.playlist);
+    } catch (err) {
+        return res.send(null);
+    }
 });
 
 /**
@@ -141,5 +182,5 @@ app.all("/playlist/actions/skip-video/:roomCode", function(req, res) {
 });
 
 app.get('health', function(req, res) {
-    res.send('tyketube-health-all-ok');
+    return res.send('tyketube-health-all-ok');
 });
