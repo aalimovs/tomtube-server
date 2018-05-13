@@ -16,6 +16,7 @@ module.exports = (args) => {
         socket._data = {
             type: socket.handshake.query.type,
             uuid: Uuid(),
+            room_code: socket.handshake.query.room_code,
         };
 
         if (socket.handshake.headers.referer.includes('player')) {
@@ -69,7 +70,13 @@ const createNewRoom = () => {
         sockets,
         playlist,
         emit: (key, data) => {
-            sockets.forEach(socket => socket.emit(key, data));
+            console.log('key', key);
+            console.log('data', data);
+            console.log('sockets.length', sockets.length);
+            sockets.forEach(socket => {
+                console.log('sending to socket.id', socket.id);
+                socket.emit(key, data)
+            });
         },
         selfDestruct: function (rooms) {
             sockets.forEach(socket => socket.disconnect());
