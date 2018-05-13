@@ -43,7 +43,7 @@ app.post("/search/:pageToken?", async function(req, res) {
     const queryObject = {
         part: 'snippet',
         q: req.body.search,
-        maxResults: 3,
+        maxResults: 20,
         key: process.env.YOUTUBE_API_KEY,
         type: 'video',
     };
@@ -178,6 +178,24 @@ app.all("/playlist/actions/skip-video/:roomCode", function(req, res) {
 
     const room = Socket.getRoom(req.params.roomCode);
     room.emit("skip-video");
+    return res.send(room.playlist);
+});
+
+app.post('/playlist/actions/play-video/:roomCode', function(req, res) {
+    const room = Socket.getRoom(req.params.roomCode);
+    room.emit("play-video", room.playlist);
+    return res.send(room.playlist);
+});
+
+app.post('/playlist/actions/pause-video/:roomCode', function(req, res) {
+    const room = Socket.getRoom(req.params.roomCode);
+    room.emit("pause-video", room.playlist);
+    return res.send(room.playlist);
+});
+
+app.post('/playing-video/:roomCode', function(req, res) {
+    const room = Socket.getRoom(req.params.roomCode);
+    room.emit("playing-video", room.playlist);
     return res.send(room.playlist);
 });
 

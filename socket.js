@@ -95,7 +95,7 @@ const generateRoomCode = () => {
     const chars = [];
 
     for (let i = 0; i < 4; i++) {
-        chars.push(possibleChars[_.random(possibleChars.length)]);
+        chars.push(possibleChars[_.random(possibleChars.length - 1)]);
     }
 
     return chars.join('').toUpperCase();
