@@ -20,7 +20,7 @@ app.listen(serverPort, () =>
     console.log(`Example app listening on serverPort ${serverPort}`)
 );
 
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,PATCH");
     res.header(
@@ -35,8 +35,13 @@ app.use(function(req, res, next) {
  */
 const Socket = require("./socket")();
 
-// dedicated youtube search endpoint
-app.post("/search/:pageToken?", async function(req, res) {
+/**
+ * adds a video to the playlist
+ * @param {Object} req the Express request
+ * @param {Object} res the Express response
+ * @param {[string]} req.params.pageToken if given, the youtube page token to paginate results by
+ */
+app.post("/search/:pageToken?", async function (req, res) {
     Log.info('SEARCH', `search term: '${req.body.search}'`);
     const pageToken = req.params.pageToken;
 
@@ -48,7 +53,7 @@ app.post("/search/:pageToken?", async function(req, res) {
         type: 'video',
     };
 
-    if (pageToken) {
+    if (pageToken) { // if we have a `pageToken`, paginate the results using it
         queryObject.pageToken = pageToken;
     }
 
@@ -76,13 +81,19 @@ app.post("/search/:pageToken?", async function(req, res) {
     } catch (err) {
         console.log('err', err);
         return res.send({
-            
+
         });
     }
 });
 
 /**
  * adds a video to the playlist
+ * @param {Object} req the Express request
+ * @param {Object} res the Express response
+ * @param {string} req.params.roomCode the room code of the room to add the video to the playlist of
+ * @param {string} req.body.id the youtube id of the video
+ * @param {string} req.body.title the youtube title of the video
+ * @param {string} req.body.author the tyketube author of the video
  */
 app.post('/playlist/:roomCode', (req, res) => {
     console.log('adding video to playlist');
@@ -107,11 +118,17 @@ app.post('/playlist/:roomCode', (req, res) => {
 
 /**
  * add a video to the start of the playlist
+ * @param {Object} req the Express request
+ * @param {Object} res the Express response
+ * @param {string} req.params.roomCode the room code of the room to add the video to the playlist of
+ * @param {string} req.body.id the youtube id of the video
+ * @param {string} req.body.title the youtube title of the video
+ * @param {string} req.body.author the tyketube author of the video
  */
-app.post("/playlist/next/:roomCode", function(req, res) {
+app.post("/playlist/next/:roomCode", function (req, res) {
     Log.info('Pushing a video to front of playlist', req.body);
     const video = { ...req.body };
-    
+
     const room = Socket.getRoom(req.params.roomCode);
 
     try {
@@ -131,8 +148,11 @@ app.post("/playlist/next/:roomCode", function(req, res) {
 
 /**
  * return the whole playlist
+ * @param {Object} req the Express request
+ * @param {Object} res the Express response
+ * @param {string} req.params.roomCode the room code of the room to return the playlist of
  */
-app.get("/playlist/:roomCode", function(req, res) {
+app.get("/playlist/:roomCode", function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
     if (room) {
         return res.send(room.playlist);
@@ -141,18 +161,32 @@ app.get("/playlist/:roomCode", function(req, res) {
     return res.send(null);
 });
 
-app.get("/rooms", function(req, res) {
+/**
+ * return all the rooms from the socket instance
+ * @param {Object} req the Express request
+ * @param {Object} res the Express response
+ */
+app.get("/rooms", function (req, res) {
     return Socket.getRooms();
 });
 
-app.get("/rooms/:id", function(req, res) {
-    return Socket.getRoom(req.params.id);
+/**
+ * return the room for the given room code
+ * @param {Object} req the Express request
+ * @param {Object} res the Express response
+ * @param {string} req.params.roomCode the room code of the room to return
+ */
+app.get("/rooms/:roomCode", function (req, res) {
+    return Socket.getRoom(req.params.roomCode);
 });
 
 /**
- * delete the "next" video
+ * delete the "next" video from a playlist for a given room
+ * @param {Object} req the Express request
+ * @param {Object} res the Express response
+ * @param {string} req.params.roomCode
  */
-app.delete("/playlist/:roomCode", function(req, res) {
+app.delete("/playlist/:roomCode", function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
     try {
         room.playlist.shift();
@@ -166,14 +200,17 @@ app.delete("/playlist/:roomCode", function(req, res) {
 /**
  * delete a specific video from the playlist via id
  */
-app.delete("/playlist/:roomCode/:id", function(req, res) {
+app.delete("/playlist/:roomCode/:id", function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
     const removedVideo = _.remove(room.playlist, v => v.id === req.params.id);
     room.emit("playlist-updated", room.playlist);
     return res.send(room.playlist);
 });
 
-app.all("/playlist/actions/skip-video/:roomCode", function(req, res) {
+/**
+ * force a given room to skip its current video
+ */
+app.all("/playlist/actions/skip-video/:roomCode", function (req, res) {
     console.log(`skipping video in room ${req.params.roomCode}`);
 
     const room = Socket.getRoom(req.params.roomCode);
@@ -181,26 +218,51 @@ app.all("/playlist/actions/skip-video/:roomCode", function(req, res) {
     return res.send(room.playlist);
 });
 
-app.post('/playlist/actions/play-video/:roomCode', function(req, res) {
+/**
+ * force a given room to start playing its video
+ */
+app.post('/playlist/actions/play-video/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
     room.emit("play-video", room.playlist);
     room.emit("playing-video", room.playlist);
     return res.send(room.playlist);
 });
 
-app.post('/playlist/actions/pause-video/:roomCode', function(req, res) {
+/**
+ * force a given room to pause its current video
+ */
+app.post('/playlist/actions/pause-video/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
     room.emit("pause-video", room.playlist);
     room.emit("pausing-video", room.playlist);
     return res.send(room.playlist);
 });
 
-app.post('/playing-video/:roomCode', function(req, res) {
+/**
+ * emit to a room the "playing-video" event
+ */
+app.post('/playing-video/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
     room.emit("playing-video", room.playlist);
     return res.send(room.playlist);
 });
 
-app.get('health', function(req, res) {
+/**
+ * 
+ */
+app.post('/playlist/actions/re-order/:roomCode/:newPosition', function (req, res) {
+    const { roomCode, newPosition } = req.params;
+    const room = Socket.getRoom(roomCode);
+    const playlist = room.playlist;
+
+
+    room.emit("playing-video", room.playlist);
+    return res.send(room.playlist);
+});
+
+/**
+ * return something from the API as a health point
+ */
+app.get('health', function (req, res) {
     return res.send('tyketube-health-all-ok');
 });

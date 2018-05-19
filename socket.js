@@ -35,6 +35,7 @@ module.exports = (args) => {
         socket.on('disconnect', () => {
             const room = findRoomForCode(socket._data.room_code, rooms);
             if (socket._data.type === 'player') {
+                room.emit('host-leave');
                 room.selfDestruct(rooms);
             } else if (socket._data.type === 'user') {
                 if (room) {
