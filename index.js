@@ -10,7 +10,7 @@ const Axios = require('axios');
 const QueryString = require('querystring');
 
 const app = express();
-
+app.disable('etag');
 app.use(bodyParser.json()); // support json encoded bodies
 app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
@@ -170,14 +170,16 @@ app.get("/rooms", function (req, res) {
     return Socket.getRooms();
 });
 
-/**
- * return the room for the given room code
- * @param {Object} req the Express request
- * @param {Object} res the Express response
- * @param {string} req.params.roomCode the room code of the room to return
- */
-app.get("/rooms/:roomCode", function (req, res) {
-    return Socket.getRoom(req.params.roomCode);
+app.get("/rooms/:roomCode", function(req, res) {
+    const room = Socket.getRoom(req.params.roomCode);
+
+    if (room) {
+        console.log('room found returning 200');
+        return res.status(200).send(true);
+    } else {
+        console.log('room not found returning 500');
+        return res.status(404).send('no room');
+    }
 });
 
 /**
