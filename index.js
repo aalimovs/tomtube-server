@@ -200,17 +200,25 @@ app.delete("/playlist/:roomCode", function (req, res) {
 });
 
 /**
- * delete a specific video from the playlist via id
+ * delete a specific video from a room via the video ID
+ * @param {Object} req the Express request
+ * @param {Object} res the Express response
+ * @param {string} req.params.roomCode
+ * @param {string} req.params.videoId the video id to delete from the playlist
  */
-app.delete("/playlist/:roomCode/:id", function (req, res) {
-    const room = Socket.getRoom(req.params.roomCode);
-    const removedVideo = _.remove(room.playlist, v => v.id === req.params.id);
+app.delete("/playlist/:roomCode/:videoId", function (req, res) {
+    const { roomCode, videoId } = req.params;
+    const room = Socket.getRoom(roomCode);
+    const removedVideo = _.remove(room.playlist, v => v.id === videoId);
     room.emit("playlist-updated", room.playlist);
     return res.send(room.playlist);
 });
 
 /**
  * force a given room to skip its current video
+ * @param {Object} req the Express request
+ * @param {Object} res the Express response
+ * @param {string} req.params.roomCode
  */
 app.all("/playlist/actions/skip-video/:roomCode", function (req, res) {
     console.log(`skipping video in room ${req.params.roomCode}`);
