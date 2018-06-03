@@ -240,8 +240,7 @@ app.all("/playlist/actions/skip-video/:roomCode", function (req, res) {
  */
 app.post('/playlist/actions/play-video/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
-    room.emit("play-video", room.playlist);
-    room.emit("playing-video", room.playlist);
+    room.emit("command-play", room.playlist);
     return res.send(room.playlist);
 });
 
@@ -250,8 +249,7 @@ app.post('/playlist/actions/play-video/:roomCode', function (req, res) {
  */
 app.post('/playlist/actions/pause-video/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
-    room.emit("pause-video", room.playlist);
-    room.emit("pausing-video", room.playlist);
+    room.emit("command-pause", room.playlist);
     return res.send(room.playlist);
 });
 
