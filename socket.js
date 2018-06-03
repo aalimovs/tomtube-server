@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const Uuid = require('uuid/v4');
+const Room = require('./room');
 
 module.exports = (args) => {
     var app = require('express')();
@@ -13,31 +14,27 @@ module.exports = (args) => {
     console.log('SOCKET - Listening on port 4001');
 
     io.on('connection', function (socket) {
-        socket._data = {
-            type: socket.handshake.query.type,
-            uuid: Uuid(),
-            room_code: socket.handshake.query.room_code,
-        };
-
-        if (socket.handshake.headers.referer.includes('player')) {
-            const room = createNewRoom();
-            socket._data.room_code = room.code;
-            room.sockets.push(socket);
+        socket.uuid = Uuid();
+        if (socket.handshake.query.type === 'player') {
+            const room = new Room(socket.handshake.address);
+            socket.roomCode = room.code;
+            room.addSocket(socket);
             rooms.push(room);
-            emitWelcome(socket, room);
-        } else if (socket.handshake.headers.referer.includes('user')) {
-            const room = findRoomForCode(socket._data.room_code, rooms);
+        } else if (socket.handshake.query.type === 'user') {
+            const room = findRoomForCode(socket.handshake.query.roomCode, rooms);
             if (room) {
-                room.sockets.push(socket);
+                room.addSocket(socket);
             }
         }
 
+        console.log('rooms', rooms);
+
         socket.on('disconnect', () => {
-            const room = findRoomForCode(socket._data.room_code, rooms);
-            if (socket._data.type === 'player') {
+            const room = findRoomForCode(socket.roomCode, rooms);
+            if (socket.handshake.query.type === 'player') {
                 room.emit('host-leave');
                 room.selfDestruct(rooms);
-            } else if (socket._data.type === 'user') {
+            } else if (socket.handshake.query.type === 'user') {
                 if (room) {
                     room.removeSocket(socket._data.uuid);
                 }
@@ -46,64 +43,15 @@ module.exports = (args) => {
     });
 
     return {
-        emit: (code, key, data) => {
-            const room = findRoomForCode(code, rooms);
-            room.emit(key, data);
+        getRoom: (code) => {
+            const room = rooms.find(r => r.code === code);
+            return room;
         },
+
         getRooms: () => {
             return rooms;
-        },
-        getRoom: (code) => {
-            return findRoomForCode(code, rooms);
         },
     };
 }
 
 const findRoomForCode = (code, rooms) => rooms.find(r => r.code === code);
-
-const createNewRoom = () => {
-    const code = generateRoomCode();
-    const sockets = [];
-    const playlist = [];
-
-    return {
-        code,
-        sockets,
-        playlist,
-        emit: (key, data) => {
-            console.log('key', key);
-            console.log('data', data);
-            console.log('sockets.length', sockets.length);
-            sockets.forEach(socket => {
-                console.log('sending to socket.id', socket.id);
-                socket.emit(key, data)
-            });
-        },
-        selfDestruct: function (rooms) {
-            sockets.forEach(socket => socket.disconnect());
-            _.remove(rooms, r => r.code === code);
-        },
-        removeSocket: function (socketUuid) {
-            const removedSockets = _.remove(sockets, s => s.uuid === socketUuid);
-            removedSockets.forEach(s => s.disconnect());
-        },
-    };
-};
-
-const generateRoomCode = () => {
-    const possibleChars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz123456789';
-
-    const chars = [];
-
-    for (let i = 0; i < 4; i++) {
-        chars.push(possibleChars[_.random(possibleChars.length - 1)]);
-    }
-
-    return chars.join('').toUpperCase();
-};
-
-const emitWelcome = (socket, room) => {
-    socket.emit('welcome', {
-        room_code: room.code,
-    });
-};

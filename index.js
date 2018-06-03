@@ -107,9 +107,9 @@ app.post('/playlist/:roomCode', (req, res) => {
     const video = { ...req.body };
     const room = Socket.getRoom(req.params.roomCode);
 
-    console.log('room', room);
     try {
-        room.playlist.push(video);
+        console.log('room', room);
+        room.addVideoToEndOfPlaylist(video);
         room.emit("playlist-updated", room.playlist);
         room.emit("new-video", {
             playlist: room.playlist,
@@ -118,6 +118,7 @@ app.post('/playlist/:roomCode', (req, res) => {
         });
         return res.send(room.playlist);
     } catch (err) {
+        console.log('err', err);
         res.status(400);
         return res.send('Failed to queue song');
     }
@@ -139,7 +140,7 @@ app.post("/playlist/next/:roomCode", function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
 
     try {
-        room.playlist.unshift(video);
+        room.addVideoToStartOfPlaylist(video);
         room.emit("playlist-updated", room.playlist);
         room.emit("new-video", {
             playlist: room.playlist,
@@ -168,13 +169,24 @@ app.get("/playlist/:roomCode", function (req, res) {
     return res.send(null);
 });
 
+app.get('/rooms-on-my-ip', function (req, res) {
+    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    const matchingRooms = Socket.getRooms().filter(r => r.ip === ip);
+
+    console.log('matchingRooms', matchingRooms);
+
+    return res.send(matchingRooms.map(r => r.output()));
+});
+
 /**
  * return all the rooms from the socket instance
  * @param {Object} req the Express request
  * @param {Object} res the Express response
  */
 app.get("/rooms", function (req, res) {
-    return Socket.getRooms();
+    const rooms = Socket.getRooms();
+
+    return res.send(rooms.map(r => r.output()));
 });
 
 app.get("/rooms/:roomCode", function(req, res) {
@@ -182,7 +194,7 @@ app.get("/rooms/:roomCode", function(req, res) {
 
     if (room) {
         console.log('room found returning 200');
-        return res.status(200).send(true);
+        return res.status(200).send(room.output());
     } else {
         console.log('room not found returning 500');
         return res.status(404).send('no room');
@@ -198,7 +210,7 @@ app.get("/rooms/:roomCode", function(req, res) {
 app.delete("/playlist/:roomCode", function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
     try {
-        room.playlist.shift();
+        room.removeVideoFromStartOfPlaylist();
         room.emit("playlist-updated", room.playlist);
         return res.send(room.playlist);
     } catch (err) {
@@ -281,3 +293,4 @@ app.post('/playlist/actions/re-order/:roomCode/:newPosition', function (req, res
 app.get('/health', function (req, res) {
     return res.status(200).send('tyketube-health-all-ok');
 });
+
