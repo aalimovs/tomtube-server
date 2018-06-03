@@ -42,6 +42,13 @@ const Socket = require("./socket")();
  * @param {[string]} req.params.pageToken if given, the youtube page token to paginate results by
  */
 app.post("/search/:pageToken?", async function (req, res) {
+    if (!req.body.search) {
+        return res.status(400).send({
+            message: "You must provide a search term",
+            error: "Missing payload: 'search'",
+        });
+    }
+
     Log.info('SEARCH', `search term: '${req.body.search}'`);
     const pageToken = req.params.pageToken;
 
@@ -273,6 +280,6 @@ app.post('/playlist/actions/re-order/:roomCode/:newPosition', function (req, res
 /**
  * return something from the API as a health point
  */
-app.get('health', function (req, res) {
-    return res.send('tyketube-health-all-ok');
+app.get('/health', function (req, res) {
+    return res.status(200).send('tyketube-health-all-ok');
 });
