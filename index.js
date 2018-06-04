@@ -252,6 +252,7 @@ app.all("/playlist/actions/skip-video/:roomCode", function (req, res) {
  */
 app.post('/playlist/actions/play-video/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
+    room.setCurrentVideoTitle(req.body.title);
     room.emit("command-play", room.playlist);
     return res.send(room.playlist);
 });
@@ -285,6 +286,12 @@ app.post('/playlist/actions/re-order/:roomCode/:newPosition', function (req, res
 
     room.emit("playing-video", room.playlist);
     return res.send(room.playlist);
+});
+
+app.get('/ip', function (req, res) {
+    return res.status(200).send({
+        ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+    });
 });
 
 /**

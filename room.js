@@ -14,13 +14,22 @@ class Room {
         this.code = [];
 
         /** @param {Object[]} playlist array of video objects */
+        /*
+        each video consists of
+        id: video.id,
+        title: video.title,
+        author: this.identity,
+        */
         this.playlist = [];
 
         /** @param {string} ip the ip address of the host of this room */
         this.ip = null;
 
-        /** @param {string} created_at when the room was created */
-        this.created_at = DayJs().format('YYYY-MM-DD HH:mm:ss');
+        /** @param {string} createdAt when the room was created */
+        this.createdAt = DayJs().format('YYYY-MM-DD HH:mm:ss');
+
+        /** @param {string} currentVideoTitle the title of the video that is currently playing in this room */
+        this.currentVideoTitle = '';
 
         if (ip) {
             this.ip = ip;
@@ -38,6 +47,10 @@ class Room {
         socket.emit('welcome', {
             roomCode: this.code,
         });
+    }
+
+    setCurrentVideoTitle(title) {
+        this.currentVideoTitle = title;
     }
 
     addVideoToEndOfPlaylist(video) {
@@ -77,7 +90,8 @@ class Room {
         return {
             code: this.code,
             ip: this.ip,
-            created_at: this.created_at,
+            createdAt: this.createdAt,
+            currentVideoTitle: this.currentVideoTitle,
             playlist: this.playlist,
             sockets: this.sockets.map(s => ({
                 uuid: s.uuid,
