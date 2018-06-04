@@ -1,6 +1,8 @@
 require("dotenv").config();
 const Log = require('winston');
 const _ = require('lodash');
+const Moment = require('moment');
+const MomentDurationFormatSetup = require("moment-duration-format");
 
 // @see https://developers.google.com/youtube/v3/docs/search/list
 
@@ -52,29 +54,42 @@ app.post("/search/:pageToken?", async function (req, res) {
     Log.info('SEARCH', `search term: '${req.body.search}'`);
     const pageToken = req.params.pageToken;
 
-    const queryObject = {
+    const searchQueryObject = {
         part: 'snippet',
         q: req.body.search,
-        maxResults: 20,
+        maxResults: 10,
         key: process.env.YOUTUBE_API_KEY,
         type: 'video',
     };
 
     if (pageToken) { // if we have a `pageToken`, paginate the results using it
-        queryObject.pageToken = pageToken;
+        searchQueryObject.pageToken = pageToken;
     }
 
-    const query = QueryString.stringify(queryObject);
+    const query = QueryString.stringify(searchQueryObject);
 
     try {
-        const response = await Axios.get(`https://www.googleapis.com/youtube/v3/search?${query}`);
-        const { items, nextPageToken } = response.data;
+        const searchResponse = await Axios.get(`https://www.googleapis.com/youtube/v3/search?${query}`);
+        const { items, nextPageToken } = searchResponse.data;
+        const videoIds = items.map(item => item.id.videoId);
+
+        const videosQueryObject = QueryString.stringify({
+            part: 'contentDetails',
+            id: items.map(item => item.id.videoId).join(','),
+            key: process.env.YOUTUBE_API_KEY,
+        });
+
+        const videosResponse = await Axios.get(`https://www.googleapis.com/youtube/v3/videos?${videosQueryObject}`);
 
         const results = items.map(item => {
+            const duration = videosResponse.data.items.find(i => {
+                return i.id.trim() === item.id.videoId.trim();
+            }).contentDetails.duration;
             return {
                 title: item.snippet.title,
                 id: item.id.videoId,
                 author: item.snippet.channelTitle,
+                duration: Moment.duration(duration).format('mm:ss'),
             };
         });
 
