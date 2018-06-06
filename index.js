@@ -1,15 +1,13 @@
 require("dotenv").config();
 const Log = require('winston');
 const _ = require('lodash');
-const Moment = require('moment');
-const MomentDurationFormatSetup = require("moment-duration-format");
+
+const Video = require('./video');
 
 // @see https://developers.google.com/youtube/v3/docs/search/list
 
 const express = require("express");
 var bodyParser = require("body-parser");
-const Axios = require('axios');
-const QueryString = require('querystring');
 
 const app = express();
 app.disable('etag');
@@ -37,76 +35,16 @@ app.use(function (req, res, next) {
  */
 const Socket = require("./socket")();
 
+// and our search endpoint
+const Search = require("./search")(app);
+
 /**
  * adds a video to the playlist
  * @param {Object} req the Express request
  * @param {Object} res the Express response
  * @param {[string]} req.params.pageToken if given, the youtube page token to paginate results by
  */
-app.post("/search/:pageToken?", async function (req, res) {
-    if (!req.body.search) {
-        return res.status(400).send({
-            message: "You must provide a search term",
-            error: "Missing payload: 'search'",
-        });
-    }
 
-    Log.info('SEARCH', `search term: '${req.body.search}'`);
-    const pageToken = req.params.pageToken;
-
-    const searchQueryObject = {
-        part: 'snippet',
-        q: req.body.search,
-        maxResults: 10,
-        key: process.env.YOUTUBE_API_KEY,
-        type: 'video',
-    };
-
-    if (pageToken) { // if we have a `pageToken`, paginate the results using it
-        searchQueryObject.pageToken = pageToken;
-    }
-
-    const query = QueryString.stringify(searchQueryObject);
-
-    try {
-        const searchResponse = await Axios.get(`https://www.googleapis.com/youtube/v3/search?${query}`);
-        const { items, nextPageToken } = searchResponse.data;
-        const videoIds = items.map(item => item.id.videoId);
-
-        const videosQueryObject = QueryString.stringify({
-            part: 'contentDetails',
-            id: items.map(item => item.id.videoId).join(','),
-            key: process.env.YOUTUBE_API_KEY,
-        });
-
-        const videosResponse = await Axios.get(`https://www.googleapis.com/youtube/v3/videos?${videosQueryObject}`);
-
-        const results = items.map(item => {
-            const duration = videosResponse.data.items.find(i => {
-                return i.id.trim() === item.id.videoId.trim();
-            }).contentDetails.duration;
-            return {
-                title: item.snippet.title,
-                id: item.id.videoId,
-                author: item.snippet.channelTitle,
-                duration: Moment.duration(duration).format('mm:ss'),
-            };
-        });
-
-        return res.send({
-            data: results,
-            meta: {
-                nextPageToken,
-            },
-        });
-
-    } catch (err) {
-        console.log('err', err);
-        return res.send({
-
-        });
-    }
-});
 
 /**
  * adds a video to the playlist
@@ -315,4 +253,6 @@ app.get('/ip', function (req, res) {
 app.get('/health', function (req, res) {
     return res.status(200).send('tyketube-health-all-ok');
 });
+
+
 
