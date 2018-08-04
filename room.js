@@ -22,6 +22,13 @@ class Room {
         */
         this.playlist = [];
 
+        /**
+         * @param {string} playState the current state of whether the video is playing or not
+         * stopped - the default state, or playback has ended
+         * playing - the video is currently playing
+         * paused - the video is currently paused
+         */
+        this.playState = 'stopped';
         /** @param {string} ip the ip address of the host of this room */
         this.ip = null;
 
@@ -31,10 +38,11 @@ class Room {
         /** @param {string} currentVideoTitle the title of the video that is currently playing in this room */
         this.currentVideoTitle = '';
 
-        if (ip) {
-            this.ip = ip;
-        }
+        /** @param {string} volume the volume of the room */
+        this.volume = 0;
 
+        this.ip = ip || null;
+        
         this.code = generateCode();
     }
 
@@ -46,6 +54,8 @@ class Room {
         this.sockets.push(socket);
         socket.emit('welcome', {
             roomCode: this.code,
+            volume: this.volume,
+
         });
     }
 
@@ -65,19 +75,19 @@ class Room {
         this.playlist.shift();
     }
 
-    emit (key, data) {
+    emit(key, data) {
         this.sockets.forEach(socket => {
             console.log('sending to socket.id', socket.id);
-            socket.emit(key, data)
+            socket.emit(key, data);
         });
     }
 
-    selfDestruct (rooms) {
+    selfDestruct(rooms) {
         this.sockets.forEach(socket => socket.disconnect());
         _.remove(rooms, r => r.code === this.code);
     }
 
-    removeSocket (socketUuid) {
+    removeSocket(socketUuid) {
         const removedSockets = _.remove(this.sockets, s => s.uuid === socketUuid);
         removedSockets.forEach(s => s.disconnect());
     }
@@ -95,7 +105,7 @@ class Room {
             playlist: this.playlist,
             sockets: this.sockets.map(s => ({
                 uuid: s.uuid,
-                ip: s.handshake.address
+                ip: s.handshake.address,
             })),
         };
     }
