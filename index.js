@@ -1,10 +1,15 @@
 require('dotenv').config();
 const Log = require('winston');
 const _ = require('lodash');
+const Fs = require('fs');
 
 const Video = require('./video');
 
 // @see https://developers.google.com/youtube/v3/docs/search/list
+
+if (!Fs.existsSync('./.env')) {
+    throw Error('No .env file! You need to create one!');
+}
 
 const express = require('express');
 const bodyParser = require('body-parser');
