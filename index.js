@@ -1,10 +1,15 @@
 require('dotenv').config();
 const Log = require('winston');
 const _ = require('lodash');
+const Fs = require('fs');
 
 const Video = require('./video');
 
 // @see https://developers.google.com/youtube/v3/docs/search/list
+
+if (!Fs.existsSync('./.env')) {
+    throw Error('No .env file! You need to create one!');
+}
 
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -205,6 +210,7 @@ app.post('/playlist/actions/play-video/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
     room.setCurrentVideoTitle(req.body.title);
     room.emit('command-play', room.playlist);
+    room.playState = 'playing';
     return res.send(room.playlist);
 });
 
@@ -213,7 +219,8 @@ app.post('/playlist/actions/play-video/:roomCode', function (req, res) {
  */
 app.post('/playlist/actions/pause-video/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
-    room.emit('command-pause', room.playlist);
+    room.emit("command-pause", room.playlist);
+    room.playState = 'paused';
     return res.send(room.playlist);
 });
 
@@ -233,14 +240,17 @@ app.post('/playlist/actions/volume/:roomCode', function (req, res) {
     return res.send(room.playlist);
 });
 
-/**
- * 
- */
 app.post('/playlist/actions/re-order/:roomCode/:newPosition', function (req, res) {
     const { roomCode } = req.params;
     const room = Socket.getRoom(roomCode);
 
     room.emit('playing-video', room.playlist);
+    return res.send(room.playlist);
+});
+
+app.post('/volume-change/:roomCode', function (req, res) {
+    const room = Socket.getRoom(req.params.roomCode);
+    room.emit('volume-change', req.params.volume);
     return res.send(room.playlist);
 });
 
