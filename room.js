@@ -36,6 +36,8 @@ class Room {
         }
 
         this.code = generateCode();
+
+        this.volume = 50;
     }
 
     /**
@@ -51,35 +53,44 @@ class Room {
 
     setCurrentVideoTitle(title) {
         this.currentVideoTitle = title;
+        return this;
     }
 
     addVideoToEndOfPlaylist(video) {
         this.playlist.push(video);
+        return this;
     }
 
     addVideoToStartOfPlaylist(video) {
         this.playlist.unshift(video);
+        return this;
     }
 
     removeVideoFromStartOfPlaylist() {
         this.playlist.shift();
+        return this;
     }
 
-    emit (key, data) {
+    emit(key, data) {
         this.sockets.forEach(socket => {
             console.log('sending to socket.id', socket.id);
-            socket.emit(key, data)
+            socket.emit(key, data);
         });
     }
 
-    selfDestruct (rooms) {
+    selfDestruct(rooms) {
         this.sockets.forEach(socket => socket.disconnect());
         _.remove(rooms, r => r.code === this.code);
     }
 
-    removeSocket (socketUuid) {
+    removeSocket(socketUuid) {
         const removedSockets = _.remove(this.sockets, s => s.uuid === socketUuid);
         removedSockets.forEach(s => s.disconnect());
+    }
+
+    setVolume(volume) {
+        this.volume = volume;
+        return this;
     }
 
     /**
@@ -95,7 +106,7 @@ class Room {
             playlist: this.playlist,
             sockets: this.sockets.map(s => ({
                 uuid: s.uuid,
-                ip: s.handshake.address
+                ip: s.handshake.address,
             })),
         };
     }

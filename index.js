@@ -1,4 +1,4 @@
-require("dotenv").config();
+require('dotenv').config();
 const Log = require('winston');
 const _ = require('lodash');
 
@@ -6,8 +6,8 @@ const Video = require('./video');
 
 // @see https://developers.google.com/youtube/v3/docs/search/list
 
-const express = require("express");
-var bodyParser = require("body-parser");
+const express = require('express');
+const bodyParser = require('body-parser');
 
 const app = express();
 app.disable('etag');
@@ -17,15 +17,14 @@ app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 const serverPort = 4000;
 
 app.listen(serverPort, () =>
-    console.log(`Example app listening on serverPort ${serverPort}`)
-);
+    console.log(`Example app listening on serverPort ${serverPort}`));
 
 app.use(function (req, res, next) {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,PATCH");
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH');
     res.header(
-        "Access-Control-Allow-Headers",
-        "Origin, X-Requested-With, Content-Type, Accept"
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept',
     );
     next();
 });
@@ -33,10 +32,10 @@ app.use(function (req, res, next) {
 /**
  * spin up our Socket server
  */
-const Socket = require("./socket")();
+const Socket = require('./socket')();
 
 // and our search endpoint
-const Search = require("./search")(app);
+const Search = require('./search')(app);
 
 /**
  * adds a video to the playlist
@@ -63,8 +62,8 @@ app.post('/playlist/:roomCode', (req, res) => {
     try {
         console.log('room', room);
         room.addVideoToEndOfPlaylist(video);
-        room.emit("playlist-updated", room.playlist);
-        room.emit("new-video", {
+        room.emit('playlist-updated', room.playlist);
+        room.emit('new-video', {
             playlist: room.playlist,
             video,
             type: 'add',
@@ -86,7 +85,7 @@ app.post('/playlist/:roomCode', (req, res) => {
  * @param {string} req.body.title the youtube title of the video
  * @param {string} req.body.author the tyketube author of the video
  */
-app.post("/playlist/next/:roomCode", function (req, res) {
+app.post('/playlist/next/:roomCode', function (req, res) {
     Log.info('Pushing a video to front of playlist', req.body);
     const video = { ...req.body };
 
@@ -94,8 +93,8 @@ app.post("/playlist/next/:roomCode", function (req, res) {
 
     try {
         room.addVideoToStartOfPlaylist(video);
-        room.emit("playlist-updated", room.playlist);
-        room.emit("new-video", {
+        room.emit('playlist-updated', room.playlist);
+        room.emit('new-video', {
             playlist: room.playlist,
             video,
             type: 'add',
@@ -113,7 +112,7 @@ app.post("/playlist/next/:roomCode", function (req, res) {
  * @param {Object} res the Express response
  * @param {string} req.params.roomCode the room code of the room to return the playlist of
  */
-app.get("/playlist/:roomCode", function (req, res) {
+app.get('/playlist/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
     if (room) {
         return res.send(room.playlist);
@@ -136,22 +135,21 @@ app.get('/rooms-on-my-ip', function (req, res) {
  * @param {Object} req the Express request
  * @param {Object} res the Express response
  */
-app.get("/rooms", function (req, res) {
+app.get('/rooms', function (req, res) {
     const rooms = Socket.getRooms();
 
     return res.send(rooms.map(r => r.output()));
 });
 
-app.get("/rooms/:roomCode", function(req, res) {
+app.get('/rooms/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
 
     if (room) {
         console.log('room found returning 200');
         return res.status(200).send(room.output());
-    } else {
-        console.log('room not found returning 500');
-        return res.status(404).send('no room');
-    }
+    } 
+    console.log('room not found returning 500');
+    return res.status(404).send('no room');
 });
 
 /**
@@ -160,11 +158,11 @@ app.get("/rooms/:roomCode", function(req, res) {
  * @param {Object} res the Express response
  * @param {string} req.params.roomCode
  */
-app.delete("/playlist/:roomCode", function (req, res) {
+app.delete('/playlist/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
     try {
         room.removeVideoFromStartOfPlaylist();
-        room.emit("playlist-updated", room.playlist);
+        room.emit('playlist-updated', room.playlist);
         return res.send(room.playlist);
     } catch (err) {
         return res.send(null);
@@ -178,11 +176,11 @@ app.delete("/playlist/:roomCode", function (req, res) {
  * @param {string} req.params.roomCode
  * @param {string} req.params.videoId the video id to delete from the playlist
  */
-app.delete("/playlist/:roomCode/:videoId", function (req, res) {
+app.delete('/playlist/:roomCode/:videoId', function (req, res) {
     const { roomCode, videoId } = req.params;
     const room = Socket.getRoom(roomCode);
     const removedVideo = _.remove(room.playlist, v => v.id === videoId);
-    room.emit("playlist-updated", room.playlist);
+    room.emit('playlist-updated', room.playlist);
     return res.send(room.playlist);
 });
 
@@ -192,11 +190,11 @@ app.delete("/playlist/:roomCode/:videoId", function (req, res) {
  * @param {Object} res the Express response
  * @param {string} req.params.roomCode
  */
-app.all("/playlist/actions/skip-video/:roomCode", function (req, res) {
+app.all('/playlist/actions/skip-video/:roomCode', function (req, res) {
     console.log(`skipping video in room ${req.params.roomCode}`);
 
     const room = Socket.getRoom(req.params.roomCode);
-    room.emit("skip-video");
+    room.emit('skip-video');
     return res.send(room.playlist);
 });
 
@@ -206,7 +204,7 @@ app.all("/playlist/actions/skip-video/:roomCode", function (req, res) {
 app.post('/playlist/actions/play-video/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
     room.setCurrentVideoTitle(req.body.title);
-    room.emit("command-play", room.playlist);
+    room.emit('command-play', room.playlist);
     return res.send(room.playlist);
 });
 
@@ -215,7 +213,7 @@ app.post('/playlist/actions/play-video/:roomCode', function (req, res) {
  */
 app.post('/playlist/actions/pause-video/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
-    room.emit("command-pause", room.playlist);
+    room.emit('command-pause', room.playlist);
     return res.send(room.playlist);
 });
 
@@ -224,7 +222,14 @@ app.post('/playlist/actions/pause-video/:roomCode', function (req, res) {
  */
 app.post('/playing-video/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
-    room.emit("playing-video", room.playlist);
+    room.emit('playing-video', room.playlist);
+    return res.send(room.playlist);
+});
+
+app.post('/playlist/actions/volume/:roomCode', function (req, res) {
+    const room = Socket.getRoom(req.params.roomCode);
+    room.setVolume(req.body.volume);
+    room.emit('volume-updated', req.body.volume);
     return res.send(room.playlist);
 });
 
@@ -232,12 +237,10 @@ app.post('/playing-video/:roomCode', function (req, res) {
  * 
  */
 app.post('/playlist/actions/re-order/:roomCode/:newPosition', function (req, res) {
-    const { roomCode, newPosition } = req.params;
+    const { roomCode } = req.params;
     const room = Socket.getRoom(roomCode);
-    const playlist = room.playlist;
 
-
-    room.emit("playing-video", room.playlist);
+    room.emit('playing-video', room.playlist);
     return res.send(room.playlist);
 });
 
@@ -253,6 +256,4 @@ app.get('/ip', function (req, res) {
 app.get('/health', function (req, res) {
     return res.status(200).send('tyketube-health-all-ok');
 });
-
-
 
