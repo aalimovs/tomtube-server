@@ -21,9 +21,6 @@ app.use(bodyParser.urlencoded({ extended: true })); // support encoded bodies
 
 const serverPort = 4000;
 
-app.listen(serverPort, () =>
-    console.log(`Example app listening on serverPort ${serverPort}`));
-
 app.use(function (req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH');
@@ -32,6 +29,10 @@ app.use(function (req, res, next) {
         'Origin, X-Requested-With, Content-Type, Accept',
     );
     next();
+});
+
+app.listen(serverPort, () => {
+    console.log(`Example app listening on serverPort ${serverPort}`);
 });
 
 /**
@@ -152,7 +153,7 @@ app.get('/rooms/:roomCode', function (req, res) {
     if (room) {
         console.log('room found returning 200');
         return res.status(200).send(room.output());
-    } 
+    }
     console.log('room not found returning 500');
     return res.status(404).send('no room');
 });
@@ -219,7 +220,7 @@ app.post('/playlist/actions/play-video/:roomCode', function (req, res) {
  */
 app.post('/playlist/actions/pause-video/:roomCode', function (req, res) {
     const room = Socket.getRoom(req.params.roomCode);
-    room.emit("command-pause", room.playlist);
+    room.emit('command-pause', room.playlist);
     room.playState = 'paused';
     return res.send(room.playlist);
 });
@@ -245,12 +246,6 @@ app.post('/playlist/actions/re-order/:roomCode/:newPosition', function (req, res
     const room = Socket.getRoom(roomCode);
 
     room.emit('playing-video', room.playlist);
-    return res.send(room.playlist);
-});
-
-app.post('/volume-change/:roomCode', function (req, res) {
-    const room = Socket.getRoom(req.params.roomCode);
-    room.emit('volume-change', req.params.volume);
     return res.send(room.playlist);
 });
 
