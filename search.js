@@ -4,7 +4,43 @@ const Axios = require('axios');
 const Video = require('./video');
 const Playlist = require('./playlist');
 const Moment = require('moment');
+const { dd, dump } = require('dumper.js');
 const MomentDurationFormatSetup = require('moment-duration-format'); // eslint-disable-line
+
+const parseYoutubeResponseItems = items => {
+    const results = items.map((item) => {
+        let { kind } = item;
+        if (kind === 'youtube#searchResult') {
+            kind = item.id.kind; // eslint-disable-line
+        }
+        dump(item);
+        switch (kind) {
+            case 'youtube#video':
+                return new Video({
+                    id: item.id.videoId,
+                    title: item.snippet.title,
+                    author: item.snippet.channelTitle,
+                });
+            case 'youtube#playlist':
+                return new Playlist({
+                    id: item.id.playlistId,
+                    title: item.snippet.title,
+                    author: item.snippet.channelTitle,
+                    thumbnail: item.snippet.thumbnails.high.url,
+                });
+            case 'youtube#playlistItem':
+                return new Video({
+                    id: item.snippet.resourceId.videoId,
+                    title: item.snippet.title,
+                    author: item.snippet.channelTitle,
+                });
+            default:
+                return new Error('unknown type');
+        }
+    });
+
+    return results;
+};
 
 module.exports = (app) => {
     app.post('/search/:pageToken?', async (req, res) => {
@@ -37,25 +73,7 @@ module.exports = (app) => {
             const searchResponse = await Axios.get(`https://www.googleapis.com/youtube/v3/search?${query}`);
             const { items, nextPageToken } = searchResponse.data;
             
-            let results = items.map((item) => {
-                switch (item.id.kind) {
-                    case 'youtube#video':
-                        return new Video({
-                            id: item.id.videoId,
-                            title: item.snippet.title,
-                            author: item.snippet.channelTitle,
-                        });
-                    case 'youtube#playlist':
-                        return new Playlist({
-                            id: item.id.playlistId,
-                            title: item.snippet.title,
-                            author: item.snippet.channelTitle,
-                            thumbnail: item.snippet.thumbnails.high.url,
-                        });
-                    default:
-                        return new Error('unknown type');
-                }
-            });
+            let results = parseYoutubeResponseItems(items);
 
             // inject durations into the videos
             results = await injectDurationsIntoVideoCollection(results);
@@ -72,6 +90,30 @@ module.exports = (app) => {
 
             });
         }
+    });
+
+    app.get('/search/playlist/:playlistId/:pageToken?', async (req, res) => {
+        const queryParams = {
+            part: 'snippet,contentDetails',
+            playlistId: req.params.playlistId,
+            key: process.env.YOUTUBE_API_KEY,
+        };
+        if (req.params.pageToken) {
+            queryParams.pageToken = req.params.pageToken;
+        }
+        const queryString = QueryString.stringify(queryParams);
+
+        const youtubeResponse = await Axios.get(`https://www.googleapis.com/youtube/v3/playlistItems?${queryString}`);
+
+        const { items, nextPageToken } = youtubeResponse.data;
+
+        let results = await parseYoutubeResponseItems(items);
+        results = await injectDurationsIntoVideoCollection(results);
+
+        return res.send({
+            results,
+            nextPageToken,
+        });
     });
 };
 
@@ -92,9 +134,10 @@ const injectDurationsIntoVideoCollection = collection => {
     
     return Axios.get(`https://www.googleapis.com/youtube/v3/videos?${queryString}`)
         .then(videosResponse => {
-            console.log('videosResponse.data', videosResponse.data);
+            dump('AAAAAAAA');
             return collection
                 .map(c => {
+                    dump(c);
                     if (c instanceof Video) {
                         c.duration = Moment.duration(videosResponse.data.items.find(i => i.id === c.id).contentDetails.duration).format('mm:ss');
                     }

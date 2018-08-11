@@ -3,9 +3,9 @@ const Uuid = require('uuid/v4');
 const Room = require('./room');
 
 module.exports = (args) => {
-    var app = require('express')();
-    var server = require('http').Server(app);
-    var io = require('socket.io')(server);
+    const app = require('express')();
+    const server = require('http').Server(app);
+    const io = require('socket.io')(server);
 
     const rooms = [];
 
@@ -27,8 +27,6 @@ module.exports = (args) => {
             }
         }
 
-        console.log('rooms', rooms);
-
         socket.on('disconnect', () => {
             const room = findRoomForCode(socket.roomCode, rooms);
             if (socket.handshake.query.type === 'player') {
@@ -48,10 +46,8 @@ module.exports = (args) => {
             return room;
         },
 
-        getRooms: () => {
-            return rooms;
-        },
+        getRooms: () => rooms,
     };
-}
+};
 
 const findRoomForCode = (code, rooms) => rooms.find(r => r.code === code);

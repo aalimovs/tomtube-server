@@ -45,7 +45,7 @@ class Room {
         
         this.code = generateCode();
 
-        this.volume = 50;
+        this.volume = 100;
     }
 
     /**
