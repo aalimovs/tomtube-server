@@ -8,11 +8,11 @@ class Playlist {
     }
     output() {
         return {
-            type: this.type,
-            id: this.id,
-            title: this.title,
-            author: this.author,
-            thumbnail: this.thumbnail,
+            type: this.type
+            , id: this.id
+            , title: this.title
+            , author: this.author
+            , thumbnail: this.thumbnail,
         };
     }
 }

@@ -10,11 +10,11 @@ class Video {
 
     output() {
         return {
-            type: this.type,
-            id: this.id,
-            title: this.title,
-            author: this.author,
-            duration: this.duration,
+            type: this.type
+            , id: this.id
+            , title: this.title
+            , author: this.author
+            , duration: this.duration,
         };
     }
 }

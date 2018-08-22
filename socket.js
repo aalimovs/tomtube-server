@@ -44,9 +44,9 @@ module.exports = (args) => {
         getRoom: (code) => {
             const room = rooms.find(r => r.code === code);
             return room;
-        },
+        }
 
-        getRooms: () => rooms,
+        , getRooms: () => rooms,
     };
 };
 

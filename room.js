@@ -55,8 +55,8 @@ class Room {
     addSocket(socket) {
         this.sockets.push(socket);
         socket.emit('welcome', {
-            roomCode: this.code,
-            volume: this.volume,
+            roomCode: this.code
+            , volume: this.volume,
 
         });
     }
@@ -109,14 +109,14 @@ class Room {
      */
     output() {
         return {
-            code: this.code,
-            ip: this.ip,
-            createdAt: this.createdAt,
-            currentVideoTitle: this.currentVideoTitle,
-            playlist: this.playlist,
-            sockets: this.sockets.map(s => ({
-                uuid: s.uuid,
-                ip: s.handshake.address,
+            code: this.code
+            , ip: this.ip
+            , createdAt: this.createdAt
+            , currentVideoTitle: this.currentVideoTitle
+            , playlist: this.playlist
+            , sockets: this.sockets.map(s => ({
+                uuid: s.uuid
+                , ip: s.handshake.address,
             })),
         };
     }

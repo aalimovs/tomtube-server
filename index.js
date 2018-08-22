@@ -70,9 +70,9 @@ app.post('/playlist/:roomCode', (req, res) => {
         room.addVideoToEndOfPlaylist(video);
         room.emit('playlist-updated', room.playlist);
         room.emit('new-video', {
-            playlist: room.playlist,
-            video,
-            type: 'add',
+            playlist: room.playlist
+            , video
+            , type: 'add',
         });
         return res.send(room.playlist);
     } catch (err) {
@@ -101,9 +101,9 @@ app.post('/playlist/next/:roomCode', function (req, res) {
         room.addVideoToStartOfPlaylist(video);
         room.emit('playlist-updated', room.playlist);
         room.emit('new-video', {
-            playlist: room.playlist,
-            video,
-            type: 'add',
+            playlist: room.playlist
+            , video
+            , type: 'add',
         });
         return res.send(room.playlist);
     } catch (err) {
